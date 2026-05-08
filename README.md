@@ -2,6 +2,8 @@
 
 A production-ready watermark detection system combining **FastAPI backend** (YOLOv8 inference) and **Next.js frontend** (React UI).
 
+**📔 [View Notebook](https://colab.research.google.com/drive/1Wi0WIWEEI8F01RMjBwU3f_aLDvORrRnV?usp=sharing)** — Interactive walkthrough and experiments on Google Colab
+
 ## Project Structure
 
 ```
