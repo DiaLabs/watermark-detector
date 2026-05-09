@@ -2,6 +2,7 @@ from pathlib import Path
 import logging
 import torch
 import torch.nn as nn
+import numpy as np
 
 try:
     from ultralytics.utils import loss as ultralytics_loss
@@ -55,26 +56,31 @@ class WatermarkDetector:
         self.model = YOLO(str(self.model_path))
         logger.info("Model loaded successfully")
 
-    def detect(self, image_path: str | Path, conf: float = 0.5, iou: float = 0.5):
+    def detect(self, source: str | Path | np.ndarray, conf: float = 0.5, iou: float = 0.5):
         """
         Detect watermarks in image.
         
         Args:
-            image_path: Path to input image
+            source: Path to input image OR numpy array (OpenCV image)
             conf: Confidence threshold (0-1)
             iou: IoU threshold for NMS (0-1)
             
         Returns:
             dict with detections: bounding boxes, confidences, class labels
         """
-        image_path = Path(image_path)
+        is_path = isinstance(source, (str, Path))
         
-        if not image_path.exists():
-            raise FileNotFoundError(f"Image not found: {image_path}")
+        if is_path:
+            source_path = Path(source)
+            if not source_path.exists():
+                raise FileNotFoundError(f"Image not found: {source_path}")
+            source_input = str(source_path)
+        else:
+            source_input = source
         
         # Run inference
         results = self.model.predict(
-            source=str(image_path),
+            source=source_input,
             conf=conf,
             iou=iou,
             verbose=False
@@ -92,13 +98,12 @@ class WatermarkDetector:
                     "x2": float(box.xyxy[0][2]),
                     "y2": float(box.xyxy[0][3]),
                     "confidence": float(box.conf),
-                    "class": "watermark",
+                    "class_name": "watermark",
                     "class_id": int(box.cls)
                 }
                 detections.append(detection)
         
         return {
-            "image_path": str(image_path),
             "detections": detections,
             "count": len(detections)
         }

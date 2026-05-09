@@ -10,6 +10,8 @@ import tempfile
 from src.inference import WatermarkDetector
 from src.utils import draw_bboxes, format_response
 import config
+import cv2
+import numpy as np
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -17,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Watermark Detector", version="1.0.0")
 
-# Mount outputs directory for static file serving
-app.mount("/outputs", StaticFiles(directory=str(Path(__file__).parent / "outputs")), name="outputs")
+# app.mount("/outputs", StaticFiles(directory=str(Path(__file__).parent / "outputs")), name="outputs")
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -40,7 +41,6 @@ class DetectionRequest(BaseModel):
 
 class DetectionResponse(BaseModel):
     """Response schema for detection endpoint."""
-    original_image: str
     annotated_image: str | None
     detection_count: int
     detections: list
@@ -68,41 +68,26 @@ async def health_check():
 @app.post("/detect", response_model=DetectionResponse)
 async def detect_watermarks(request: DetectionRequest):
     """
-    Detect watermarks in image.
-    
-    Args:
-        request.image_path: Path to input image (relative or absolute)
-        
-    Returns:
-        Detection results with annotated image and metadata
+    Detect watermarks in image from path.
     """
     if detector is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
     
     try:
-        # Resolve image path
         image_path = Path(request.image_path)
-        if not image_path.is_absolute():
-            # Relative path - resolve from backend root
-            image_path = Path(__file__).parent / image_path
+        image = cv2.imread(str(image_path))
+        if image is None:
+            raise HTTPException(status_code=404, detail="Image not found")
         
         # Run detection
-        result = detector.detect(
-            image_path,
-            conf=config.CONFIDENCE_THRESHOLD,
-            iou=config.IOU_THRESHOLD
-        )
+        result = detector.detect(image)
         
         # Draw bounding boxes
-        annotated_path = draw_bboxes(image_path, result["detections"])
+        annotated_base64 = draw_bboxes(image, result["detections"])
         
         # Format response
-        response = format_response(image_path, result["detections"], annotated_path)
+        return format_response(result["detections"], annotated_base64)
         
-        return response
-        
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Detection error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -111,13 +96,7 @@ async def detect_watermarks(request: DetectionRequest):
 @app.post("/detect-upload", response_model=DetectionResponse)
 async def detect_watermarks_upload(file: UploadFile = File(...)):
     """
-    Detect watermarks in uploaded image file.
-    
-    Args:
-        file: Image file upload (JPG, PNG, etc.)
-        
-    Returns:
-        Detection results with annotated image and metadata
+    Detect watermarks in uploaded image file (Processed in memory).
     """
     if detector is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
@@ -128,32 +107,30 @@ async def detect_watermarks_upload(file: UploadFile = File(...)):
         if file.content_type not in allowed_types:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported file type: {file.content_type}. Allowed: JPG, PNG, BMP, GIF, TIFF"
+                detail=f"Unsupported file type: {file.content_type}"
             )
         
-        # Save uploaded file to temporary location
-        temp_dir = Path(config.OUTPUT_DIR) / "uploads"
-        temp_dir.mkdir(parents=True, exist_ok=True)
+        # Read file into memory
+        contents = await file.read()
         
-        temp_image_path = temp_dir / file.filename
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        with open(temp_image_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image data")
         
         # Run detection
         result = detector.detect(
-            temp_image_path,
+            image,
             conf=config.CONFIDENCE_THRESHOLD,
             iou=config.IOU_THRESHOLD
         )
         
         # Draw bounding boxes
-        annotated_path = draw_bboxes(temp_image_path, result["detections"])
+        annotated_base64 = draw_bboxes(image, result["detections"])
         
         # Format response
-        response = format_response(temp_image_path, result["detections"], annotated_path)
-        
-        return response
+        return format_response(result["detections"], annotated_base64)
         
     except HTTPException:
         raise
