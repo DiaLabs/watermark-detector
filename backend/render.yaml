@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: watermark-detector-backend
+    env: python
+    envVars:
+      - key: PIP_PREFER_BINARY
+        value: "1"
+    buildCommand: bash build.sh
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
