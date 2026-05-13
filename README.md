@@ -113,4 +113,4 @@ Watermark-detector/
 
 ---
 
-> **Note**: This project is optimized for deployment in environments with limited persistent storage, as it does not rely on a local filesystem for processing images.
+> **Note**: This project is optimized for deployment in environments with limited persistent storage, as it doesn't rely on a local filesystem for processing images.
