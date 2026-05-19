@@ -6,27 +6,64 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --border: #e2e8f0;
-  --accent: #2563eb;
+  --background: #FCFBFF; /* Very light, airy purple-white */
+  --foreground: #1E1B4B; /* Deep indigo for high contrast text */
+  --border: #E0DDF7;     /* Soft purple border */
+  --primary: #5C4AD3;    /* Main brand purple */
+  --primary-light: #8A7EF3; /* Hover/Soft purple */
+  --success: #10B981;    /* Green for badges */
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
-  background: #f8fafc; /* Very light slate background for subtle contrast with white cards */
+  background: var(--background);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: radial-gradient(circle at 15% 50%, rgba(92, 74, 211, 0.03), transparent 25%),
+                    radial-gradient(circle at 85% 30%, rgba(92, 74, 211, 0.04), transparent 25%);
 }
 
 /* Custom Utilities */
 .glass-card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border);
+  box-shadow: 0 10px 40px -10px rgba(92, 74, 211, 0.08);
 }
 
 .tight-tracking {
   letter-spacing: -0.025em;
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
+.brand-text-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+
+@keyframes float-slower {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(10px) rotate(-3deg); }
+}
+
+.animate-float-slow {
+  animation: float-slow 10s ease-in-out infinite;
+}
+
+.animate-float-slower {
+  animation: float-slower 14s ease-in-out infinite;
 }
