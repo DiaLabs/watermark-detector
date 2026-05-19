@@ -86,7 +86,7 @@ async def detect_watermarks(request: DetectionRequest):
         annotated_base64 = draw_bboxes(image, result["detections"])
         
         # Format response
-        return format_response(result["detections"], annotated_base64)
+        return format_response(result["detections"], annotated_base64, result.get("heatmap_image"))
         
     except Exception as e:
         logger.error(f"Detection error: {e}")
@@ -130,7 +130,7 @@ async def detect_watermarks_upload(file: UploadFile = File(...)):
         annotated_base64 = draw_bboxes(image, result["detections"])
         
         # Format response
-        return format_response(result["detections"], annotated_base64)
+        return format_response(result["detections"], annotated_base64, result.get("heatmap_image"))
         
     except HTTPException:
         raise
